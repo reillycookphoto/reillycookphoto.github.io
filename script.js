@@ -3,8 +3,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const header = document.getElementById('main-header');
 
-    // Dynamic copyright year
+    // Dynamic copyright year and experience years
     document.querySelectorAll('.copyright-year').forEach(el => el.textContent = new Date().getFullYear());
+    
+    const expYears = document.getElementById('experience-years');
+    if (expYears) {
+        const currentYear = new Date().getFullYear();
+        expYears.textContent = (currentYear - 2019) + '+';
+    }
 
     // Loader logic - Show only once per session
     const loaderShown = sessionStorage.getItem('loaderShown');
@@ -68,6 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
         initGallery(grid, observer);
     }
 
+    // --- SPECIALTIES LOGIC (index.html) ---
+    const specialtiesContainer = document.getElementById('specialties-container');
+    if (specialtiesContainer) {
+        loadSpecialties(specialtiesContainer);
+    }
+
     // --- PRESS LOGIC (press.html) ---
     const pressList = document.getElementById('press-list');
     if (pressList) {
@@ -80,10 +92,20 @@ document.addEventListener('DOMContentLoaded', () => {
         loadPressTeaser(pressTeaserList);
     }
 
+    // --- PACKAGES LOGIC (index.html) ---
+    const pricingContainer = document.getElementById('pricing-container');
+    if (pricingContainer) {
+        loadPackages(pricingContainer, observer);
+    }
+
     // --- ABOUT LOGIC (about.html) ---
     const aboutReveal = document.querySelectorAll('.about-text, .about-image, .contact-card');
     if (aboutReveal.length > 0) {
         aboutReveal.forEach(el => observer.observe(el));
+    }
+    const aboutContent = document.getElementById('about-content');
+    if (aboutContent) {
+        loadAbout(aboutContent);
     }
 
     // GALLERY / CAROUSEL FUNCTIONS
@@ -257,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadPress(container, observer) {
         try {
-            const response = await fetch('press.json');
+            const response = await fetch('content/press.json');
             const data = await response.json();
             data.sort((a, b) => {
                 // Pin logic - Pinned items always go first
@@ -319,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // PRESS TEASER FUNCTION (index.html — shows top 3)
     async function loadPressTeaser(container) {
         try {
-            const response = await fetch('press.json');
+            const response = await fetch('content/press.json');
             const data = await response.json();
             data.sort((a, b) => {
                 if (a.pinned && !b.pinned) return -1;
@@ -357,6 +379,140 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error('Error loading press teaser:', error);
+        }
+    }
+    // PACKAGES FUNCTIONS
+    async function loadPackages(container, observer) {
+        try {
+            const response = await fetch('content/packages.txt');
+            const text = await response.text();
+            
+            // Split by double newlines or similar to get blocks
+            const blocks = text.split(/\n\s*\n/).filter(block => block.trim() !== "");
+            
+            blocks.forEach((block, index) => {
+                const lines = block.split('\n').map(l => l.trim()).filter(l => l !== "");
+                const pkg = {
+                    price: "",
+                    title: "",
+                    description: "",
+                    features: [],
+                    image: { src: "", alt: "" }
+                };
+
+                lines.forEach(line => {
+                    if (line.startsWith('$')) {
+                        pkg.price = line.replace('$', '').trim();
+                    } else if (line.startsWith('#')) {
+                        pkg.title = line.replace('#', '').trim();
+                    } else if (line.startsWith('-')) {
+                        pkg.description = line.replace('-', '').trim();
+                    } else if (line.startsWith('*')) {
+                        pkg.features.push(line.replace('*', '').trim());
+                    } else if (line.startsWith('![')) {
+                        const match = line.match(/!\[(.*?)\]\((.*?)\)/);
+                        if (match) {
+                            pkg.image.alt = match[1];
+                            pkg.image.src = match[2];
+                        }
+                    }
+                });
+
+                if (pkg.title) {
+                    const row = document.createElement('div');
+                    row.className = `pricing-row ${index % 2 !== 0 ? 'row-reverse' : ''}`;
+                    
+                    const featuresHtml = pkg.features.map(f => `<li>${f}</li>`).join('');
+                    
+                    row.innerHTML = `
+                        <div class="pricing-img-wrap">
+                            <img src="${pkg.image.src}" alt="${pkg.image.alt}">
+                        </div>
+                        <div class="pricing-content">
+                            <span class="pricing-label">${pkg.price}</span>
+                            <h3>${pkg.title}</h3>
+                            <p>${pkg.description}</p>
+                            <ul class="pricing-features">
+                                ${featuresHtml}
+                            </ul>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                    observer.observe(row);
+                }
+            });
+        } catch (error) {
+            console.error('Error loading packages:', error);
+        }
+    }
+
+    // ABOUT FUNCTIONS
+    async function loadAbout(container) {
+        try {
+            const response = await fetch('content/about.txt');
+            const text = await response.text();
+            
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l !== "");
+            let html = "";
+            
+            lines.forEach(line => {
+                if (line.startsWith('#')) {
+                    html += `<h2>${line.replace('#', '').trim()}</h2>`;
+                } else if (line.startsWith('-')) {
+                    html += `<p>${line.replace('-', '').trim()}</p>`;
+                }
+            });
+            
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading about content:', error);
+        }
+    }
+
+    // SPECIALTIES FUNCTIONS
+    async function loadSpecialties(container) {
+        try {
+            const response = await fetch('content/specialties.txt');
+            const text = await response.text();
+            
+            const blocks = text.split(/\n\s*\n/).filter(block => block.trim() !== "");
+            
+            blocks.forEach(block => {
+                const lines = block.split('\n').map(l => l.trim()).filter(l => l !== "");
+                const spec = { title: "", description: "", image: { src: "", alt: "" } };
+
+                lines.forEach(line => {
+                    if (line.startsWith('#')) {
+                        spec.title = line.replace('#', '').trim();
+                    } else if (line.startsWith('-')) {
+                        spec.description = line.replace('-', '').trim();
+                    } else if (line.startsWith('![')) {
+                        const match = line.match(/!\[(.*?)\]\((.*?)\)/);
+                        if (match) {
+                            spec.image.alt = match[1];
+                            spec.image.src = match[2];
+                        }
+                    }
+                });
+
+                if (spec.title) {
+                    const card = document.createElement('div');
+                    card.className = 'service-card';
+                    card.innerHTML = `
+                        <div class="service-img-wrap">
+                            <img src="${spec.image.src}" alt="${spec.image.alt}">
+                            <div class="service-overlay"></div>
+                        </div>
+                        <div class="service-text">
+                            <h3>${spec.title}</h3>
+                            <p>${spec.description}</p>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                }
+            });
+        } catch (error) {
+            console.error('Error loading specialties:', error);
         }
     }
 });

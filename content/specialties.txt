@@ -1,0 +1,11 @@
+# Portraits
+- Portraits that feel natural and timeless, focused on expression, character, and connection.
+![Portrait Photography](photos/portrait.jpg)
+
+# Events
+- Concerts, ceremonies, conferences, capturing energy in the room with dynamic precision.
+![Events Photography](photos/events.jpg)
+
+# Nature & Outdoors
+- Landscapes, wildlife, and the Pacific Northwest, wide perspectives that put you in the frame.
+![Nature Photography](photos/nature.jpg)
